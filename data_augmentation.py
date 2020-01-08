@@ -54,6 +54,17 @@ def create_csv_row(bnd_box, img_name, img_width, img_height):
         ymin = int(row[3])
         xmax = int(row[2])
         ymax = int(row[1])
+
+        if xmin > xmax:
+            tempx = xmax
+            xmax = xmin
+            xmin = tempx
+
+        if ymin > ymax:
+            tempy = ymax
+            ymax = ymin
+            ymin = tempy
+
         if xmin < 0 or ymin < 0 or xmax > img_width or ymax > img_height:
             break
         value = (img_name,
