@@ -169,7 +169,7 @@ def translation(img, bnd_boxes, file_path, file_name, index):
 
 def rotation(img, bnd_boxes, file_path, file_name, index):
     j = 0
-    for i in range(10, 20, 10):
+    for i in range(10, 100, 10):
         j += 1
         img_, bnd_boxes_ = RandomRotate(i)(img.copy(), bnd_boxes.copy())
         img_name = file_name + str(index + j) + ".jpg"
@@ -216,6 +216,8 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
                                       image_height=img_height)
             if Horizontal_flip:
                 index = horizontal_flip(img, bnd_boxes, new_path, filename, index)
+            if Shearing:
+                index = shearing(img, bnd_boxes, new_path, filename, index)
             if Scaling:
                 index = scaling(img, bnd_boxes, new_path, filename, index)
             if Rotation:
@@ -244,15 +246,11 @@ def class_int_to_text(class_id):
 
 value_list = []
 if __name__ == "__main__":
-
     print('PROCESS STARTING...')
 
-    WORKS_NAME = 'sugar_beet'
+    WORKS_NAME = 'tassel/'
 
     data_works_path = os.getcwd() + '/data/' + WORKS_NAME
-    if not os.path.exists(data_works_path):
-        print('Directory Created.. ', data_works_path)
-        os.mkdir(data_works_path)
 
     print('AUGMENTATION STARTING...')
 
