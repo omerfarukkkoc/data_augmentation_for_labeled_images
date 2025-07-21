@@ -35,6 +35,7 @@ class RandomHorizontalFlip(object):
         self.p = p
 
     def __call__(self, img, bboxes):
+        bboxes = np.array(bboxes).astype(float)
         img_center = np.array(img.shape[:2])[::-1] / 2
         img_center = np.hstack((img_center, img_center))
         if random.random() < self.p:
@@ -74,6 +75,8 @@ class HorizontalFlip(object):
         pass
 
     def __call__(self, img, bboxes):
+
+        bboxes = np.array(bboxes).astype(float)
         img_center = np.array(img.shape[:2])[::-1] / 2
         img_center = np.hstack((img_center, img_center))
 
@@ -130,6 +133,7 @@ class RandomScale(object):
         self.diff = diff
 
     def __call__(self, img, bboxes):
+        bboxes = np.array(bboxes).astype(float)
 
         # Chose a random digit to scale by
 
@@ -195,6 +199,8 @@ class Scale(object):
         self.scale_y = scale_y
 
     def __call__(self, img, bboxes):
+
+        bboxes = np.array(bboxes).astype(float)
         # Chose a random digit to scale by
 
         img_shape = img.shape
@@ -263,6 +269,8 @@ class RandomTranslate(object):
         self.diff = diff
 
     def __call__(self, img, bboxes):
+
+        bboxes = np.array(bboxes).astype(float)
         # Chose a random digit to scale by
         img_shape = img.shape
 
@@ -332,6 +340,8 @@ class Translate(object):
         assert self.translate_y > 0 and self.translate_y < 1
 
     def __call__(self, img, bboxes):
+
+        bboxes = np.array(bboxes).astype(float)
         # Chose a random digit to scale by
         img_shape = img.shape
 
@@ -401,6 +411,8 @@ class RandomRotate(object):
             self.angle = (-self.angle, self.angle)
 
     def __call__(self, img, bboxes):
+
+        bboxes = np.array(bboxes).astype(float)
 
         angle = random.uniform(*self.angle)
 
@@ -542,6 +554,7 @@ class RandomShear(object):
         shear_factor = random.uniform(*self.shear_factor)
 
     def __call__(self, img, bboxes):
+        bboxes = np.array(bboxes).astype(float)
 
         shear_factor = random.uniform(*self.shear_factor)
 

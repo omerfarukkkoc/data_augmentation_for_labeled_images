@@ -12,7 +12,7 @@ value_list = []
 
 def class_int_to_text(class_id):
     if class_id.__eq__(1):
-        return 'sugar_beet'
+        return 'tassel'
     else:
         None
 

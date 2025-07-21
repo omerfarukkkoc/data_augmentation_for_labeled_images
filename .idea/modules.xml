@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/9.Bnd_Box_Data_Augmentation.iml" filepath="$PROJECT_DIR$/.idea/9.Bnd_Box_Data_Augmentation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/data_augmentation_for_labeled_images.iml" filepath="$PROJECT_DIR$/.idea/data_augmentation_for_labeled_images.iml" />
     </modules>
   </component>
 </project>

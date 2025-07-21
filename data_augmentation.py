@@ -48,6 +48,28 @@ def xml_to_pickle(directory_name):
             pkl.dump(boxes, open(new_file_loc + ".pkl", "wb"))
 
 
+def read_yolo_txt(txt_file_path, image_width, image_height):
+    boxes = []
+
+    with open(txt_file_path, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            parts = line.strip().split()
+            class_id = int(parts[0])
+            x_center = float(parts[1])
+            y_center = float(parts[2])
+            width = float(parts[3])
+            height = float(parts[4])
+            xmin = int((x_center - width / 2) * image_width)
+            ymin = int((y_center - height / 2) * image_height)
+            xmax = int((x_center + width / 2) * image_width)
+            ymax = int((y_center + height / 2) * image_height)
+
+            boxes.append([xmin, ymin, xmax, ymax, class_id])
+
+    return boxes
+
+
 def create_csv_row(bnd_box, img_name, img_width, img_height):
     for row in bnd_box:
         xmin = int(row[0])
@@ -78,14 +100,45 @@ def create_csv_row(bnd_box, img_name, img_width, img_height):
         value_list.append(value)
 
 
+def save_yolo_txt(bnd_box, img_name, img_width, img_height, output_dir):
+    txt_name = os.path.splitext(img_name)[0] + ".txt"
+    txt_path = os.path.join(output_dir, txt_name)
+
+    lines = []
+    for row in bnd_box:
+        xmin = float(row[0])
+        ymin = float(row[3])
+        xmax = float(row[2])
+        ymax = float(row[1])
+        class_id = int(row[4])
+
+        if xmin > xmax:
+            xmin, xmax = xmax, xmin
+        if ymin > ymax:
+            ymin, ymax = ymax, ymin
+        if xmin < 0 or ymin < 0 or xmax > img_width or ymax > img_height:
+            continue
+
+        x_center = ((xmin + xmax) / 2) / img_width
+        y_center = ((ymin + ymax) / 2) / img_height
+        width = (xmax - xmin) / img_width
+        height = (ymax - ymin) / img_height
+
+        line = f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+        lines.append(line)
+
+    with open(txt_path, 'w') as f:
+        f.write('\n'.join(lines))
+
+
 def horizontal_flip(img, bnd_boxes, file_path, file_name, index):
     img_, bnd_boxes_ = RandomHorizontalFlip(1)(img.copy(), bnd_boxes.copy())
     img_name = file_name + str(index) + ".jpg"
     width = img.shape[1]
     height = img.shape[0]
-    create_csv_row(bnd_boxes_, img_name, width, height)
-    img_loc_name = file_path + img_name
+    img_loc_name = file_path + "/" + img_name
     cv2.imwrite(img_loc_name, img_)
+    save_yolo_txt(bnd_boxes_, img_name, width, height, file_path)
     index += 1
     return index
 
@@ -95,9 +148,9 @@ def scaling(img, bnd_boxes, file_path, file_name, index):
     img_name = file_name + str(index) + ".jpg"
     width = img.shape[1]
     height = img.shape[0]
-    create_csv_row(bnd_boxes_, img_name, width, height)
-    img_loc_name = file_path + img_name
+    img_loc_name = file_path + "/" + img_name
     cv2.imwrite(img_loc_name, img_)
+    save_yolo_txt(bnd_boxes_, img_name, width, height, file_path)
     index += 1
     return index
 
@@ -107,24 +160,24 @@ def translation(img, bnd_boxes, file_path, file_name, index):
     img_name = file_name + str(index) + ".jpg"
     width = img.shape[1]
     height = img.shape[0]
-    create_csv_row(bnd_boxes_, img_name, width, height)
-    img_loc_name = file_path + img_name
+    img_loc_name = file_path + "/" + img_name
     cv2.imwrite(img_loc_name, img_)
+    save_yolo_txt(bnd_boxes_, img_name, width, height, file_path)
     index += 1
     return index
 
 
 def rotation(img, bnd_boxes, file_path, file_name, index):
     j = 0
-    for i in range(10, 360, 10):
+    for i in range(10, 20, 10):
         j += 1
         img_, bnd_boxes_ = RandomRotate(i)(img.copy(), bnd_boxes.copy())
         img_name = file_name + str(index + j) + ".jpg"
         width = img.shape[1]
         height = img.shape[0]
-        create_csv_row(bnd_boxes_, img_name, width, height)
-        img_loc_name = file_path + img_name
+        img_loc_name = file_path + "/" + img_name
         cv2.imwrite(img_loc_name, img_)
+        save_yolo_txt(bnd_boxes_, img_name, width, height, file_path)
     return index + j + 1
 
 
@@ -133,9 +186,9 @@ def shearing(img, bnd_boxes, file_path, file_name, index):
     img_name = file_name + str(index) + ".jpg"
     width = img.shape[1]
     height = img.shape[0]
-    create_csv_row(bnd_boxes_, img_name, width, height)
-    img_loc_name = file_path + img_name
+    img_loc_name = file_path + "/" + img_name
     cv2.imwrite(img_loc_name, img_)
+    save_yolo_txt(bnd_boxes_, img_name, width, height, file_path)
     index += 1
     return index
 
@@ -143,18 +196,24 @@ def shearing(img, bnd_boxes, file_path, file_name, index):
 def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True, Rotation=True, Shearing=True):
     file_count = 0
     aug_file_count = 0
-    path = os.getcwd() + directory_name
-    new_path = os.getcwd() + directory_name + 'augmented_imgs/'
+    path = os.path.join(os.getcwd(), directory_name)
+    new_path = os.path.join(path, 'augmented_imgs')
+
     if not os.path.exists(new_path):
-        os.mkdir(new_path)
+        os.makedirs(new_path, exist_ok=True)  # Üst klasörler de yoksa yaratır
+
     for file in os.listdir(path):
         index = 0
         filename = file.split('.')[0]
         extension = file.split('.')[-1]
-        if extension == "jpg":
+        if extension.lower() == "jpg":
             file_count += 1
-            img = cv2.imread(path + file)
-            bnd_boxes = pkl.load(open(path + filename + ".pkl", "rb"))
+            img_path = os.path.join(path, file)
+            img = cv2.imread(img_path)
+            img_height, img_width = img.shape[:2]
+
+            bnd_boxes = read_yolo_txt(txt_file_path=path + filename + ".txt", image_width=img_width,
+                                      image_height=img_height)
             if Horizontal_flip:
                 index = horizontal_flip(img, bnd_boxes, new_path, filename, index)
             if Scaling:
@@ -170,7 +229,7 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
 
 
 def class_text_to_int(row_label):
-    if row_label.__eq__('sugar_beet'):
+    if row_label.__eq__('tassel'):
         return 1
     else:
         None
@@ -178,7 +237,7 @@ def class_text_to_int(row_label):
 
 def class_int_to_text(class_id):
     if class_id.__eq__(1):
-        return 'sugar_beet'
+        return 'tassel'
     else:
         None
 
@@ -188,7 +247,7 @@ if __name__ == "__main__":
 
     print('PROCESS STARTING...')
 
-    WORKS_NAME = 'sugar_beet_new_aug'
+    WORKS_NAME = 'tassel/'
 
     data_works_path = os.getcwd() + '/data/' + WORKS_NAME
     if not os.path.exists(data_works_path):
@@ -196,30 +255,26 @@ if __name__ == "__main__":
         os.mkdir(data_works_path)
 
     print('AUGMENTATION STARTING...')
-    print('Processing train images... ')
-    # train_csv_path = os.getcwd() + '/data/' + WORKS_NAME + '/train_labels.csv'
-    train_csv_path = os.getcwd() + 'train_labels.csv'
-    train_img_dir_name = '/training_images/' + WORKS_NAME + '/train/'
-    xml_to_pickle(train_img_dir_name)
-    train_df, train_img_count, train_aug_img_count = bnd_box_data_augmentation(train_img_dir_name)
-    train_df.to_csv(train_csv_path, index=None)
+
+    train_df, train_img_count, train_aug_img_count = bnd_box_data_augmentation(WORKS_NAME)
+
     train_dataset_length = len(value_list)
 
     value_list = []
 
-    print('Processing test images... ')
-    # test_csv_path = os.getcwd() + '/data/' + WORKS_NAME + '/test_labels.csv'
-    test_csv_path = os.getcwd() + '/test_labels.csv'
-    test_img_dir_name = '/training_images/' + WORKS_NAME + '/test/'
-    xml_to_pickle(test_img_dir_name)
-    test_df, test_img_count, test_aug_img_count = bnd_box_data_augmentation(test_img_dir_name)
-    test_df.to_csv(test_csv_path, index=None)
-    test_dataset_length = len(value_list)
+    # print('Processing test images... ')
+    # # test_csv_path = os.getcwd() + '/data/' + WORKS_NAME + '/test_labels.csv'
+    # test_csv_path = os.getcwd() + '/test_labels.csv'
+    # test_img_dir_name = '/training_images/' + WORKS_NAME + '/test/'
+    # xml_to_pickle(test_img_dir_name)
+    # test_df, test_img_count, test_aug_img_count = bnd_box_data_augmentation(test_img_dir_name)
+    # test_df.to_csv(test_csv_path, index=None)
+    # test_dataset_length = len(value_list)
 
     print("\nFINISHED...")
     print("Train img count:", train_img_count)
     print("Train augmented img count:", train_aug_img_count)
     print('Train Dataset Length: ', train_dataset_length)
-    print("Test img count:", test_img_count)
-    print("Test augmented img count:", test_aug_img_count)
-    print('Test Dataset Length: ', test_dataset_length)
+    # print("Test img count:", test_img_count)
+    # print("Test augmented img count:", test_aug_img_count)
+    # print('Test Dataset Length: ', test_dataset_length)

@@ -158,6 +158,8 @@ def get_corners(bboxes):
         corner co-ordinates `x1 y1 x2 y2 x3 y3 x4 y4`      
         
     """
+    bboxes = np.array(bboxes).astype(float)
+
     width = (bboxes[:,2] - bboxes[:,0]).reshape(-1,1)
     height = (bboxes[:,3] - bboxes[:,1]).reshape(-1,1)
     
