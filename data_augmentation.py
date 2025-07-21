@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
     print('PROCESS STARTING...')
 
-    WORKS_NAME = 'tassel/'
+    WORKS_NAME = 'sugar_beet'
 
     data_works_path = os.getcwd() + '/data/' + WORKS_NAME
     if not os.path.exists(data_works_path):
