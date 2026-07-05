@@ -6,18 +6,19 @@ import pickle as pkl
 import numpy as np
 import cv2
 import pandas as pd
+import argparse
 
 
 def xml_to_pickle(directory_name):
-    path = os.getcwd() + directory_name
+    path = os.path.abspath(directory_name)
     file_count = 0
     for file in os.listdir(path):
         extension = file.split('.')[-1]
         filename = str(file.split('.')[0])
-        new_file_loc = path + filename
+        new_file_loc = os.path.join(path, filename)
         if extension == 'xml':
             file_count += 1
-            file_loc = path + file
+            file_loc = os.path.join(path, file)
             tree = ElementTree.parse(file_loc)
             root = tree.getroot()
             xmldict = XmlDictConfig(root)
@@ -196,7 +197,8 @@ def shearing(img, bnd_boxes, file_path, file_name, index):
 def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True, Rotation=True, Shearing=True):
     file_count = 0
     aug_file_count = 0
-    path = os.path.join(os.getcwd(), directory_name)
+
+    path = os.path.abspath(directory_name)
     new_path = os.path.join(path, 'augmented_imgs')
 
     if not os.path.exists(new_path):
@@ -206,14 +208,24 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
         index = 0
         filename = file.split('.')[0]
         extension = file.split('.')[-1]
-        if extension.lower() == "jpg" or extension.lower() == "png" or extension.lower() == "jpeg":
+        if extension.lower() in ["jpg", "png", "jpeg"]:
             file_count += 1
             img_path = os.path.join(path, file)
             img = cv2.imread(img_path)
+
+            if img is None:
+                print(f"Uyarı: {file} okunamadı, atlanıyor.")
+                continue
+
             img_height, img_width = img.shape[:2]
 
-            bnd_boxes = read_yolo_txt(txt_file_path=path + filename + ".txt", image_width=img_width,
-                                      image_height=img_height)
+            txt_path = os.path.join(path, filename + ".txt")
+            if not os.path.exists(txt_path):
+                print(f"Uyarı: {filename}.txt bulunamadı, atlanıyor.")
+                continue
+
+            bnd_boxes = read_yolo_txt(txt_file_path=txt_path, image_width=img_width, image_height=img_height)
+
             if Horizontal_flip:
                 index = horizontal_flip(img, bnd_boxes, new_path, filename, index)
             if Shearing:
@@ -225,6 +237,7 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
             if Shearing:
                 index = shearing(img, bnd_boxes, new_path, filename, index)
             aug_file_count += index
+
     column_name = ['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax']
     values_df = pd.DataFrame(value_list, columns=column_name)
     return values_df, file_count, aug_file_count - file_count
@@ -234,43 +247,41 @@ def class_text_to_int(row_label):
     if row_label.__eq__('tassel'):
         return 1
     else:
-        None
+        return None
 
 
 def class_int_to_text(class_id):
-    if class_id.__eq__(1):
+    if class_id == 1:
         return 'tassel'
     else:
-        None
+        return None
 
 
 value_list = []
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Ömer Faruk KOÇ")
+    parser.add_argument(
+        '--input_dir',
+        type=str,
+        required=True,
+        help="etiketlenmiş görsellerin bulunduğu klasör yolu"
+    )
+    args = parser.parse_args()
+
     print('PROCESS STARTING...')
 
-    WORKS_NAME = 'tassel/'
+    WORKS_NAME = args.input_dir
 
-    print('AUGMENTATION STARTING...')
+    print(f'AUGMENTATION STARTING FOR DIRECTORY: {WORKS_NAME}')
 
     train_df, train_img_count, train_aug_img_count = bnd_box_data_augmentation(WORKS_NAME)
 
     train_dataset_length = len(value_list)
 
-    value_list = []
-
-    # print('Processing test images... ')
-    # # test_csv_path = os.getcwd() + '/data/' + WORKS_NAME + '/test_labels.csv'
-    # test_csv_path = os.getcwd() + '/test_labels.csv'
-    # test_img_dir_name = '/training_images/' + WORKS_NAME + '/test/'
-    # xml_to_pickle(test_img_dir_name)
-    # test_df, test_img_count, test_aug_img_count = bnd_box_data_augmentation(test_img_dir_name)
-    # test_df.to_csv(test_csv_path, index=None)
-    # test_dataset_length = len(value_list)
-
     print("\nFINISHED...")
     print("Train img count:", train_img_count)
     print("Train augmented img count:", train_aug_img_count)
     print('Train Dataset Length: ', train_dataset_length)
-    # print("Test img count:", test_img_count)
-    # print("Test augmented img count:", test_aug_img_count)
-    # print('Test Dataset Length: ', test_dataset_length)
+
+    # # python3 data_augmentation.py --input_dir = "/Users/omerfarukkoc/Desktop/MOVE ON/Projects/MCP/data_augmentation_for_labeled_images/tassel"
