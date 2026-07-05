@@ -206,7 +206,7 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
         index = 0
         filename = file.split('.')[0]
         extension = file.split('.')[-1]
-        if extension.lower() == "jpg" or extension.lower() == "png":
+        if extension.lower() == "jpg" or extension.lower() == "png" or extension.lower() == "jpeg":
             file_count += 1
             img_path = os.path.join(path, file)
             img = cv2.imread(img_path)
