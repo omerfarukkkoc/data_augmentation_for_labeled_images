@@ -200,13 +200,13 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
     new_path = os.path.join(path, 'augmented_imgs')
 
     if not os.path.exists(new_path):
-        os.makedirs(new_path, exist_ok=True)  # Üst klasörler de yoksa yaratır
+        os.makedirs(new_path, exist_ok=True)
 
     for file in os.listdir(path):
         index = 0
         filename = file.split('.')[0]
         extension = file.split('.')[-1]
-        if extension.lower() == "jpg":
+        if extension.lower() == "jpg" or extension.lower() == "png":
             file_count += 1
             img_path = os.path.join(path, file)
             img = cv2.imread(img_path)
@@ -249,8 +249,6 @@ if __name__ == "__main__":
     print('PROCESS STARTING...')
 
     WORKS_NAME = 'tassel/'
-
-    data_works_path = os.getcwd() + '/data/' + WORKS_NAME
 
     print('AUGMENTATION STARTING...')
 
