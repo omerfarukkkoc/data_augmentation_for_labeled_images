@@ -204,43 +204,57 @@ def bnd_box_data_augmentation(directory_name, Horizontal_flip=True, Scaling=True
     if not os.path.exists(new_path):
         os.makedirs(new_path, exist_ok=True)
 
-    for file in os.listdir(path):
+    # İlerlemeyi (progress) gösterebilmek için sadece geçerli görselleri listeliyoruz
+    valid_files = [f for f in os.listdir(path) if f.split('.')[-1].lower() in ["jpg", "png", "jpeg"]]
+    total_files = len(valid_files)
+
+    for current_idx, file in enumerate(valid_files, 1):
         index = 0
         filename = file.split('.')[0]
-        extension = file.split('.')[-1]
-        if extension.lower() in ["jpg", "png", "jpeg"]:
-            file_count += 1
-            img_path = os.path.join(path, file)
-            img = cv2.imread(img_path)
 
-            if img is None:
-                print(f"Uyarı: {file} okunamadı, atlanıyor.")
-                continue
+        # Eklediğimiz ilerleme göstergesi
+        print(f"[{current_idx}/{total_files}] İşleniyor: {file}")
 
-            img_height, img_width = img.shape[:2]
+        file_count += 1
+        img_path = os.path.join(path, file)
+        img = cv2.imread(img_path)
 
-            txt_path = os.path.join(path, filename + ".txt")
-            if not os.path.exists(txt_path):
-                print(f"Uyarı: {filename}.txt bulunamadı, atlanıyor.")
-                continue
+        if img is None:
+            print(f"  -> Uyarı: {file} okunamadı, atlanıyor.")
+            continue
 
-            bnd_boxes = read_yolo_txt(txt_file_path=txt_path, image_width=img_width, image_height=img_height)
+        img_height, img_width = img.shape[:2]
 
-            if Horizontal_flip:
-                index = horizontal_flip(img, bnd_boxes, new_path, filename, index)
-            if Shearing:
-                index = shearing(img, bnd_boxes, new_path, filename, index)
-            if Scaling:
-                index = scaling(img, bnd_boxes, new_path, filename, index)
-            if Rotation:
-                index = rotation(img, bnd_boxes, new_path, filename, index)
-            if Shearing:
-                index = shearing(img, bnd_boxes, new_path, filename, index)
-            aug_file_count += index
+        txt_path = os.path.join(path, filename + ".txt")
+        if not os.path.exists(txt_path):
+            print(f"  -> Uyarı: {filename}.txt bulunamadı, atlanıyor.")
+            continue
+
+        bnd_boxes = read_yolo_txt(txt_file_path=txt_path, image_width=img_width, image_height=img_height)
+
+        if len(bnd_boxes) == 0:
+            print(f"  -> Uyarı: {filename}.txt boş (herhangi bir etiket yok), augmentasyon atlanıyor.")
+            continue
+
+        if Horizontal_flip:
+            index = horizontal_flip(img, bnd_boxes, new_path, filename, index)
+        if Shearing:
+            index = shearing(img, bnd_boxes, new_path, filename, index)
+        if Scaling:
+            index = scaling(img, bnd_boxes, new_path, filename, index)
+        if Rotation:
+            index = rotation(img, bnd_boxes, new_path, filename, index)
+        if Shearing:
+            index = shearing(img, bnd_boxes, new_path, filename, index)
+
+        aug_file_count += index
 
     column_name = ['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax']
     values_df = pd.DataFrame(value_list, columns=column_name)
-    return values_df, file_count, aug_file_count - file_count
+
+    # Orijinal kodda "aug_file_count - file_count" vardı ama aug_file_count zaten sadece
+    # yeni oluşturulanları (index'leri) saydığı için eksiğe düşmesine gerek yok.
+    return values_df, file_count, aug_file_count
 
 
 def class_text_to_int(row_label):
@@ -260,7 +274,7 @@ def class_int_to_text(class_id):
 value_list = []
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ömer Faruk KOÇ")
+    parser = argparse.ArgumentParser(description="YOLO Veri Çoğaltma Scripti")
     parser.add_argument(
         '--input_dir',
         type=str,
@@ -273,15 +287,13 @@ if __name__ == "__main__":
 
     WORKS_NAME = args.input_dir
 
-    print(f'AUGMENTATION STARTING FOR DIRECTORY: {WORKS_NAME}')
+    print(f'AUGMENTATION STARTING FOR DIRECTORY: {WORKS_NAME}\n')
 
     train_df, train_img_count, train_aug_img_count = bnd_box_data_augmentation(WORKS_NAME)
 
     train_dataset_length = len(value_list)
 
     print("\nFINISHED...")
-    print("Train img count:", train_img_count)
-    print("Train augmented img count:", train_aug_img_count)
+    print("Train img count (Orijinal İşlenen Dosya):", train_img_count)
+    print("Train augmented img count (Yeni Üretilen Dosya):", train_aug_img_count)
     print('Train Dataset Length: ', train_dataset_length)
-
-    # # python3 data_augmentation.py --input_dir = "/Users/omerfarukkoc/Desktop/MOVE ON/Projects/MCP/data_augmentation_for_labeled_images/tassel"
